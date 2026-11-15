@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undangan Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8c6d46;
+            --primary-dark: #6b5233;
+            --bg-body: #e5e0d8;
+            --bg-app: #faf8f5;
+            --text-main: #2d2a26;
+            --text-muted: #6e685f;
+            --white: #ffffff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+        .app-wrapper {
+            max-width: 480px;
+            margin: 0 auto;
+            background-color: var(--bg-app);
+            min-height: 100vh;
+            box-shadow: 0 0 30px rgba(0,0,0,0.12);
+            position: relative;
+            overflow-x: hidden;
+        }
+        .font-serif { font-family: 'Cormorant Garamond', serif; }
+
+        /* Loading & Error State */
+        #loader {
+            position: fixed; inset: 0; max-width: 480px; margin: 0 auto;
+            background: var(--bg-app); z-index: 2000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
+        }
+
+        /* Cover Overlay */
+        #cover {
+            position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 480px; height: 100vh;
+            background-size: cover; background-position: center;
+            background-color: #2c241b;
+            color: var(--white);
+            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+            text-align: center; padding: 50px 24px;
+            z-index: 1000;
+            transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+        #cover::before {
+            content: ""; position: absolute; inset: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.75));
+            z-index: -1;
+        }
+        #cover.opened { transform: translate(-50%, -100%); }
+        .cover-title { font-size: 2.8rem; line-height: 1.1; margin: 12px 0; color: #f3d9b1; }
+        .guest-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 16px 28px; border-radius: 14px; width: 100%; max-width: 340px;
+        }
+        .btn {
+            background-color: var(--primary); color: var(--white);
+            border: none; padding: 12px 26px; border-radius: 50px;
+            font-size: 0.9rem; font-weight: 600; cursor: pointer;
+            transition: 0.25s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            text-decoration: none;
+        }
+        .btn:hover { background-color: var(--primary-dark); }
+        .btn-outline {
+            background: transparent; border: 1px solid var(--primary); color: var(--primary);
+        }
+
+        /* Sections */
+        section { padding: 48px 24px; text-align: center; border-bottom: 1px solid #ebe4d8; }
+        .sec-title { font-size: 2.2rem; color: var(--primary); margin-bottom: 12px; }
+        .sec-sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px; }
+
+        /* Mempelai */
+        .couple-card { margin: 24px 0; }
+        .couple-img {
+            width: 140px; height: 140px; border-radius: 50%; object-fit: cover;
+            border: 4px solid var(--white); box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            margin-bottom: 12px; background: #ddd;
+        }
+        .couple-name { font-size: 1.8rem; color: var(--primary); }
+        .parents-text { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+
+        /* Countdown */
+        .countdown-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 24px; }
+        .cd-box { background: var(--primary); color: var(--white); padding: 12px 6px; border-radius: 10px; }
+        .cd-box span { display: block; font-size: 1.4rem; font-weight: 700; }
+        .cd-box small { font-size: 0.7rem; text-transform: uppercase; opacity: 0.85; }
+
+        /* Cards (Events, Story, Gifts) */
+        .card {
+            background: var(--white); padding: 22px; border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04); margin-bottom: 16px;
+            border: 1px solid #f0eae1;
+        }
+        .quote-box {
+            background: #f2ece1; padding: 24px; border-radius: 14px;
+            font-style: italic; font-size: 0.9rem; color: var(--text-main);
+        }
+
+        /* Gallery */
+        .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .gallery-grid img {
+            width: 100%; height: 180px; object-fit: cover; border-radius: 10px;
+            background: #ddd;
+        }
+
+        /* Form RSVP */
+        .rsvp-form { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+        .rsvp-form input, .rsvp-form select, .rsvp-form textarea {
+            width: 100%; padding: 12px 14px; border: 1px solid #d6cec2;
+            border-radius: 10px; font-family: inherit; font-size: 0.9rem; background: var(--white);
+        }
+        .wishes-container { margin-top: 28px; max-height: 360px; overflow-y: auto; text-align: left; }
+        .wish-card {
+            background: var(--white); padding: 14px 16px; border-radius: 10px;
+            margin-bottom: 10px; border-left: 3px solid var(--primary);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+        .wish-badge {
+            font-size: 0.7rem; background: #efe9df; color: var(--primary-dark);
+            padding: 2px 8px; border-radius: 20px; font-weight: 600; margin-left: 6px;
+        }
+
+        /* Floating Music Button */
+        #music-btn {
+            position: fixed; bottom: 20px; right: 20px;
+            width: 44px; height: 44px; border-radius: 50%;
+            background: var(--primary); color: var(--white);
+            border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            cursor: pointer; z-index: 900; display: none;
+            align-items: center; justify-content: center; font-size: 1.1rem;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <!-- LOADER -->
+    <div id="loader">
+        <p id="loader-text">Memuat undangan...</p>
+    </div>
+
+    <!-- COVER -->
+    <div id="cover">
+        <div>
+            <p id="ui-label" style="letter-spacing: 3px; font-size: 0.75rem; text-transform: uppercase;">The Wedding Of</p>
+            <h1 class="font-serif cover-title" id="ui-cover-names">Mempelai</h1>
+            <p id="ui-cover-date" style="font-size: 0.9rem; opacity: 0.9;"></p>
+        </div>
+
+        <div class="guest-card">
+            <p style="font-size: 0.78rem; opacity: 0.85;">Kepada Yth. Bapak/Ibu/Saudara/i:</p>
+            <h3 id="ui-guest-name" style="margin: 6px 0; font-size: 1.15rem;">Tamu Undangan</h3>
+            <p id="ui-guest-note" style="font-size: 0.75rem; opacity: 0.8;"></p>
+        </div>
+
+        <button class="btn" onclick="openInvitation()">Buka Undangan</button>
+    </div>
+
+    <!-- AUDIO -->
+    <audio id="bg-music" loop></audio>
+    <button id="music-btn" onclick="toggleMusic()">🎵</button>
+
+    <!-- MAIN CONTENT -->
+    <main id="main-content" class="hidden">
+        <!-- PEMBUKA & QUOTE -->
+        <section>
+            <p id="ui-opening" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px;"></p>
+            
+            <div class="couple-card">
+                <img id="ui-groom-photo" class="couple-img" src="" alt="Mempelai Pria">
+                <h2 class="font-serif couple-name" id="ui-groom-name"></h2>
+                <p class="parents-text" id="ui-groom-parents"></p>
+            </div>
+
+            <div class="font-serif" style="font-size: 2rem; color: var(--primary); margin: 10px 0;">&amp;</div>
+
+            <div class="couple-card">
+                <img id="ui-bride-photo" class="couple-img" src="" alt="Mempelai Wanita">
+                <h2 class="font-serif couple-name" id="ui-bride-name"></h2>
+                <p class="parents-text" id="ui-bride-parents"></p>
+            </div>
+
+            <div id="quote-section" class="quote-box" style="margin-top: 28px;">
+                <p id="ui-quote"></p>
+            </div>
+
+            <div class="countdown-grid">
+                <div class="cd-box"><span id="cd-days">00</span><small>Hari</small></div>
+                <div class="cd-box"><span id="cd-hours">00</span><small>Jam</small></div>
+                <div class="cd-box"><span id="cd-mins">00</span><small>Menit</small></div>
+                <div class="cd-box"><span id="cd-secs">00</span><small>Detik</small></div>
+            </div>
+        </section>
+
+        <!-- RANGKAIAN ACARA -->
+        <section>
+            <h2 class="font-serif sec-title">Rangkaian Acara</h2>
+            <p class="sec-sub" id="ui-event-intro"></p>
+            <div id="ui-events-list"></div>
+        </section>
+
+        <!-- CERITA CINTA (Opsional jika diisi) -->
+        <section id="story-section" class="hidden">
+            <h2 class="font-serif sec-title">Kisah Kami</h2>
+            <div class="card" style="text-align: left; white-space: pre-line; font-size: 0.9rem;" id="ui-story"></div>
+        </section>
+
+        <!-- GALERI (Opsional jika diisi) -->
+        <section id="gallery-section" class="hidden">
+            <h2 class="font-serif sec-title">Galeri Foto</h2>
+            <div class="gallery-grid" id="ui-gallery-list"></div>
+        </section>
+
+        <!-- AMPLOP DIGITAL / GIFTS (Opsional jika diisi) -->
+        <section id="gifts-section" class="hidden">
+            <h2 class="font-serif sec-title">Tanda Kasih</h2>
+            <p class="sec-sub">Doa restu Anda merupakan karunia yang sangat berarti bagi kami.</p>
+            <div id="ui-gifts-list"></div>
+        </section>
+
+        <!-- RSVP & UCAPAN -->
+        <section>
+            <h2 class="font-serif sec-title">Konfirmasi &amp; Ucapan</h2>
+            <p class="sec-sub">Kirimkan doa restu serta konfirmasi kehadiran Anda</p>
+
+            <form class="rsvp-form" id="rsvp-form">
+                <input type="text" id="in-name" placeholder="Nama Lengkap" required>
+                <select id="in-attendance" required>
+                    <option value="" disabled selected>Apakah Anda akan hadir?</option>
+                    <option value="Hadir">Ya, Saya Akan Hadir</option>
+                    <option value="Tidak Hadir">Maaf, Tidak Bisa Hadir</option>
+                    <option value="Masih Ragu">Masih Ragu</option>
+                </select>
+                <input type="number" id="in-guests" min="1" max="10" value="1" placeholder="Jumlah Tamu" required>
+                <textarea id="in-message" rows="3" placeholder="Tuliskan ucapan & doa..." required></textarea>
+                <button type="submit" class="btn" id="btn-submit">Kirim Ucapan</button>
+            </form>
+
+            <div class="wishes-container" id="ui-wishes-list">
+                <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted);">Memuat ucapan...</p>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    // =========================================================================
+    // 1. TEMPEL URL WEB APP GOOGLE APPS SCRIPT ANDA DI BAWAH INI
+    // =========================================================================
+    const API_URL = "const API_URL = "https://script.google.com/macros/s/AKfycbxjs071ZEgJR6PsSQV1U6aR59_T0qCaUhvoB-M5m83FKQY9IbWE3ZOK-joVHJPxhKQgPQ/exec";";
+    const DEFAULT_ID = "romeo-juliet"; // ID default jika URL dibuka tanpa ?id=
+
+    // Ambil parameter dari URL (?id=...&to=...&note=...)
+    const params = new URLSearchParams(window.location.search);
+    const INVITATION_ID = params.get("id") || DEFAULT_ID;
+    const GUEST_NAME = params.get("to");
+    const GUEST_NOTE = params.get("note");
+
+    if (GUEST_NAME) {
+        document.getElementById("ui-guest-name").innerText = GUEST_NAME;
+        document.getElementById("in-name").value = GUEST_NAME;
+    }
+    if (GUEST_NOTE) {
+        document.getElementById("ui-guest-note").innerText = GUEST_NOTE;
+    }
+
+    // Helper JSONP (Sesuai dengan dukungan callback di Code.gs Anda)
+    function fetchJSONP(queryParams) {
+        return new Promise((resolve, reject) => {
+            const cbName = "jsonp_cb_" + Math.round(100000 * Math.random());
+            window[cbName] = function(data) {
+                delete window[cbName];
+                document.body.removeChild(script);
+                resolve(data);
+            };
+            const url = new URL(API_URL);
+            Object.keys(queryParams).forEach(k => url.searchParams.append(k, queryParams[k]));
+            url.searchParams.append("callback", cbName);
+
+            const script = document.createElement("script");
+            script.src = url.toString();
+            script.onerror = () => {
+                delete window[cbName];
+                document.body.removeChild(script);
+                reject(new Error("Gagal terhubung ke server"));
+            };
+            document.body.appendChild(script);
+        });
+    }
+
+    // Parse JSON aman untuk kolom events, gallery, gifts
+    function safeParseJSON(str, fallback = []) {
+        if (!str) return fallback;
+        if (typeof str === "object") return str;
+        try { return JSON.parse(str); } catch (e) { return fallback; }
+    }
+
+    // Muat Data Undangan
+    async function initInvitation() {
+        if (API_URL.includes("PASTE_URL")) {
+            document.getElementById("loader-text").innerHTML = "<b>Konfigurasi Belum Selesai:</b><br>Silakan masukkan URL Web App Apps Script Anda pada variabel <code>API_URL</code> di dalam file <code>index.html</code>.";
+            return;
+        }
+
+        try {
+            const res = await fetchJSONP({ action: "get", id: INVITATION_ID });
+            if (!res.ok) {
+                document.getElementById("loader-text").innerText = "Error: " + (res.error || "Undangan tidak ditemukan");
+                return;
+            }
+
+            const d = res.invitation;
+            document.title = `Undangan ${d.groom_name} & ${d.bride_name}`;
+
+            // Cover
+            if (d.label) document.getElementById("ui-label").innerText = d.label;
+            document.getElementById("ui-cover-names").innerText = `${d.groom_name} & ${d.bride_name}`;
+            document.getElementById("ui-cover-date").innerText = d.cover_date || "";
+            if (d.cover_image) {
+                document.getElementById("cover").style.backgroundImage = `url('${d.cover_image}')`;
+            }
+
+            // Mempelai & Teks
+            document.getElementById("ui-opening").innerText = d.opening_text || "Dengan memohon rahmat dan ridho Tuhan Yang Maha Esa, kami bermaksud menyelenggarakan acara pernikahan kami:";
+            document.getElementById("ui-groom-name").innerText = d.groom_name || "";
+            document.getElementById("ui-groom-parents").innerText = d.groom_parents || "";
+            if (d.groom_photo) document.getElementById("ui-groom-photo").src = d.groom_photo;
+            else document.getElementById("ui-groom-photo").classList.add("hidden");
+
+            document.getElementById("ui-bride-name").innerText = d.bride_name || "";
+            document.getElementById("ui-bride-parents").innerText = d.bride_parents || "";
+            if (d.bride_photo) document.getElementById("ui-bride-photo").src = d.bride_photo;
+            else document.getElementById("ui-bride-photo").classList.add("hidden");
+
+            if (d.quote_text) document.getElementById("ui-quote").innerText = d.quote_text;
+            else document.getElementById("quote-section").classList.add("hidden");
+
+            // Musik
+            if (d.music_url) {
+                document.getElementById("bg-music").src = d.music_url;
+            }
+
+            // Countdown
+            if (d.event_date) startCountdown(d.event_date);
+
+            // Events (Rangkaian Acara)
+            document.getElementById("ui-event-intro").innerText = d.event_intro || "";
+            const events = safeParseJSON(d.events, []);
+            const eventsContainer = document.getElementById("ui-events-list");
+            if (events.length > 0) {
+                eventsContainer.innerHTML = events.map(ev => `
+                    <div class="card">
+                        <h3 class="font-serif" style="font-size: 1.5rem; color: var(--primary);">${ev.title || "Acara"}</h3>
+                        <p style="font-weight: 600; margin-top: 6px;">${ev.date || ""}</p>
+                        <p style="font-size: 0.88rem; color: var(--text-muted);">${ev.time || ""}</p>
+                        <p style="font-weight: 600; margin-top: 10px;">${ev.venue || ""}</p>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">${ev.address || ""}</p>
+                        ${ev.map ? `<a href="${ev.map}" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; padding: 8px 18px;">Buka Google Maps</a>` : ""}
+                    </div>
+                `).join("");
+            }
+
+            // Story
+            if (d.story) {
+                document.getElementById("story-section").classList.remove("hidden");
+                document.getElementById("ui-story").innerText = d.story;
+            }
+
+            // Gallery
+            const gallery = safeParseJSON(d.gallery, []);
+            if (gallery.length > 0) {
+                document.getElementById("gallery-section").classList.remove("hidden");
+                document.getElementById("ui-gallery-list").innerHTML = gallery.map(url => `<img src="${url}" loading="lazy" alt="Galeri">`).join("");
+            }
+
+            // Gifts (Amplop Digital)
+            const gifts = safeParseJSON(d.gifts, []);
+            if (gifts.length > 0) {
+                document.getElementById("gifts-section").classList.remove("hidden");
+                document.getElementById("ui-gifts-list").innerHTML = gifts.map(g => `
+                    <div class="card">
+                        <strong style="color: var(--primary); font-size: 1.1rem;">${g.bank || ""}</strong>
+                        <p style="font-size: 1.25rem; font-weight: 700; margin: 6px 0; letter-spacing: 1px;">${g.number || ""}</p>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">a.n. ${g.name || ""}</p>
+                        <button class="btn btn-outline" style="font-size: 0.78rem; padding: 6px 16px;" onclick="copyText('${g.number}')">Salin Nomor</button>
+                    </div>
+                `).join("");
+            }
+
+            // Tampilkan halaman
+            document.getElementById("loader").classList.add("hidden");
+            document.getElementById("main-content").classList.remove("hidden");
+            loadWishes();
+
+        } catch (err) {
+            document.getElementById("loader-text").innerText = "Gagal memuat data undangan. Pastikan URL Web App sudah benar dan diakses oleh 'Anyone'.";
+        }
+    }
+
+    // Buka Undangan & Putar Musik
+    let isPlaying = false;
+    function openInvitation() {
+        document.getElementById("cover").classList.add("opened");
+        const audio = document.getElementById("bg-music");
+        if (audio.src) {
+            audio.play().then(() => {
+                isPlaying = true;
+                document.getElementById("music-btn").style.display = "flex";
+            }).catch(() => {
+                document.getElementById("music-btn").style.display = "flex";
+            });
+        }
+    }
+
+    function toggleMusic() {
+        const audio = document.getElementById("bg-music");
+        const btn = document.getElementById("music-btn");
+        if (isPlaying) {
+            audio.pause();
+            btn.innerText = "🔇";
+        } else {
+            audio.play();
+            btn.innerText = "🎵";
+        }
+        isPlaying = !isPlaying;
+    }
+
+    function copyText(text) {
+        navigator.clipboard.writeText(text);
+        alert("Berhasil disalin: " + text);
+    }
+
+    // Countdown Timer
+    function startCountdown(dateStr) {
+        const target = new Date(dateStr).getTime();
+        if (isNaN(target)) return;
+        setInterval(() => {
+            const diff = target - new Date().getTime();
+            if (diff <= 0) return;
+            document.getElementById("cd-days").innerText = String(Math.floor(diff / 86400000)).padStart(2, "0");
+            document.getElementById("cd-hours").innerText = String(Math.floor((diff % 86400000) / 3600000)).padStart(2, "0");
+            document.getElementById("cd-mins").innerText = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
+            document.getElementById("cd-secs").innerText = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
+        }, 1000);
+    }
+
+    // Muat Ucapan (action=wishes)
+    async function loadWishes() {
+        try {
+            const res = await fetchJSONP({ action: "wishes", id: INVITATION_ID });
+            const container = document.getElementById("ui-wishes-list");
+            if (!res.ok || !res.wishes || res.wishes.length === 0) {
+                container.innerHTML = `<p style="text-align:center; font-size:0.85rem; color:var(--text-muted);">Belum ada ucapan. Jadilah yang pertama mengirim doa!</p>`;
+                return;
+            }
+            container.innerHTML = res.wishes.map(w => `
+                <div class="wish-card">
+                    <div>
+                        <strong style="font-size: 0.9rem;">${escapeHTML(w.name)}</strong>
+                        <span class="wish-badge">${escapeHTML(w.attendance)}</span>
+                    </div>
+                    <p style="font-size: 0.85rem; margin-top: 6px; color: var(--text-main);">${escapeHTML(w.message)}</p>
+                </div>
+            `).join("");
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    // Kirim RSVP (POST action=rsvp menggunakan URLSearchParams agar terbaca di e.parameter Code.gs)
+    document.getElementById("rsvp-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btn-submit");
+        btn.disabled = true;
+        btn.innerText = "Mengirim...";
+
+        const formData = new URLSearchParams();
+        formData.append("action", "rsvp");
+        formData.append("id", INVITATION_ID);
+        formData.append("name", document.getElementById("in-name").value);
+        formData.append("attendance", document.getElementById("in-attendance").value);
+        formData.append("guests", document.getElementById("in-guests").value);
+        formData.append("message", document.getElementById("in-message").value);
+
+        try {
+            await fetch(API_URL, {
+                method: "POST",
+                mode: "no-cors",
+                body: formData
+            });
+            document.getElementById("in-message").value = "";
+            alert("Terima kasih! Ucapan dan konfirmasi Anda telah tersimpan.");
+            setTimeout(loadWishes, 1000);
+        } catch (err) {
+            alert("Gagal mengirim ucapan, silakan coba lagi.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Kirim Ucapan";
+        }
+    });
+
+    function escapeHTML(str) {
+        return String(str || "").replace(/[&<>'"]/g, tag => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[tag]));
+    }
+
+    initInvitation();
+</script>
+</body>
+</html>
